@@ -28,4 +28,4 @@ app.use('/api', require('./routes/extraer'));
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`BlackLedger server en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Comprix server en puerto ${PORT}`));

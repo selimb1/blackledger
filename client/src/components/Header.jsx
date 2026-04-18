@@ -7,7 +7,7 @@ export function Header() {
         <FileText size={18} className="text-gray-900" />
       </div>
       <div>
-        <h1 className="text-base font-semibold tracking-tight">BlackLedger</h1>
+        <h1 className="text-base font-semibold tracking-tight">Comprix</h1>
         <p className="text-xs text-gray-400">Comprobantes → Holistor IVA Registración</p>
       </div>
     </header>

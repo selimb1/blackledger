@@ -73,7 +73,7 @@ export function generarTxtHolistor(comprobantes) {
 export function nombreArchivo(periodo) {
   const hoy = new Date();
   const fecha = hoy.toISOString().split('T')[0].replace(/-/g, '');
-  return `BlackLedger_Holistor_${periodo || fecha}.txt`;
+  return `Comprix_Holistor_${periodo || fecha}.txt`;
 }
 
 // Muestra un preview legible del archivo (primeras 5 líneas)

@@ -1,5 +1,5 @@
 {
-  "name": "blackledger-client",
+  "name": "comprix-client",
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",

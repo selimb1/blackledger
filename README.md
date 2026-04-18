@@ -1,4 +1,4 @@
-# BlackLedger
+# Comprix
 
 Extrae datos de comprobantes fiscales con Gemini Vision y genera un .txt compatible con **Holistor IVA Registración** (Útiles → Importar → Datos de Otros Sistemas).
 
@@ -55,7 +55,7 @@ La primera vez que importés, configurá el diseño de registro en Holistor así
 | 15 | IVA 10.5% | \\| |
 | 16 | Total | (fin) |
 
-Guardá el diseño con el nombre "BLACKLEDGER" y seleccionalo en cada importación.
+Guardá el diseño con el nombre "COMPRIX" y seleccionalo en cada importación.
 
 ## Variables de entorno
 
