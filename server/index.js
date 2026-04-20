@@ -7,9 +7,9 @@ const errorHandler = require('./middleware/errorHandler');
 // Validación temprana de la API key
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) {
-  console.error('\n❌ ERROR: GEMINI_API_KEY no configurada.');
-  console.error('   Pegá tu key en server/.env como: GEMINI_API_KEY=...\n');
-  process.exit(1);
+  console.error('\n⚠️ ADVERTENCIA: GEMINI_API_KEY no configurada.');
+  console.error('   El Módulo 1 (Comprobantes) fallará, pero podrás probar Conciliación Bancaria.\n');
+  // Eliminamos el process.exit(1) para que al menos levante el server.
 }
 
 const app = express();
@@ -25,6 +25,7 @@ const limiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
 app.use('/api', limiter);
 
 app.use('/api', require('./routes/extraer'));
+app.use('/api/conciliacion', require('./routes/conciliacion'));
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;

@@ -1,4 +1,7 @@
+import { useLocation, Link } from 'react-router-dom';
+
 export function Header() {
+  const location = useLocation();
   return (
     <header 
       className="flex items-center justify-between px-6"
@@ -17,12 +20,29 @@ export function Header() {
             Comprix
           </h1>
         </div>
-        <p 
-          className="text-[12px] font-medium"
-          style={{ color: 'rgba(255,255,255,0.6)' }}
+      </div>
+      
+      <div className="flex bg-white/10 rounded overflow-hidden">
+        <Link
+          to="/comprobantes"
+          className={`px-4 py-1.5 text-[12px] font-semibold transition-all ${
+            location.pathname.startsWith('/comprobantes')
+              ? 'bg-white/15 text-white'
+              : 'text-white/60 hover:text-white/80'
+          }`}
         >
           Comprobantes → Holistor
-        </p>
+        </Link>
+        <Link
+          to="/conciliacion"
+          className={`px-4 py-1.5 text-[12px] font-semibold transition-all ${
+            location.pathname.startsWith('/conciliacion')
+              ? 'bg-white/15 text-white'
+              : 'text-white/60 hover:text-white/80'
+          }`}
+        >
+          Conciliación Bancaria
+        </Link>
       </div>
 
       <div 
