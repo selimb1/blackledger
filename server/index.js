@@ -4,10 +4,14 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const errorHandler = require('./middleware/errorHandler');
 
-// Validación temprana de la API key de OpenAI
+// Validación temprana de las API keys
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 if (!OPENAI_API_KEY) {
-  console.warn('\n⚠️ ADVERTENCIA: OPENAI_API_KEY no configurada. Los módulos de IA fallarán.\n');
+  console.warn('\n⚠️ ADVERTENCIA: OPENAI_API_KEY no configurada. El módulo Comprobantes → Holistor fallará.\n');
+}
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  console.warn('\n⚠️ ADVERTENCIA: GEMINI_API_KEY no configurada. El módulo Conciliación Bancaria fallará.\n');
 }
 
 const app = express();
@@ -27,6 +31,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     openai: !!OPENAI_API_KEY,
+    gemini: !!GEMINI_API_KEY,
   });
 });
 

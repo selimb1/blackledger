@@ -43,14 +43,14 @@ export function Conciliacion() {
           <div className="h-full animate-[shimmer_1.5s_infinite_linear]" style={{ backgroundColor: 'var(--color-brand-500)', width: '40%' }} />
         </div>
       )}
-      
+
       <Header />
 
       <main className="flex-1 p-[24px] max-w-[1100px] w-full mx-auto space-y-6">
-        
+
         {procesando && (
           <div className="bg-brand-50 border border-brand-200 text-brand-700 px-4 py-3 rounded text-sm text-center font-medium animate-pulse">
-            ⟳ Analizando el extracto con IA... esto puede tomar hasta 30 segundos para extractos largos
+            ⟳ Analizando el extracto esto puede tomar hasta 30 segundos para extractos largos
           </div>
         )}
 
@@ -66,14 +66,14 @@ export function Conciliacion() {
 
         {transacciones.length > 0 && (
           <>
-            <TransaccionTable 
-              transacciones={transacciones} 
-              onChange={handleChange} 
+            <TransaccionTable
+              transacciones={transacciones}
+              onChange={handleChange}
             />
-            <ExcelExportPanel 
-              transacciones={transacciones} 
-              nombreArchivo={nombreArchivo} 
-              onLimpiar={handleLimpiar} 
+            <ExcelExportPanel
+              transacciones={transacciones}
+              nombreArchivo={nombreArchivo}
+              onLimpiar={handleLimpiar}
             />
           </>
         )}

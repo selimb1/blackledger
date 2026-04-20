@@ -1,7 +1,6 @@
-const OpenAI = require('openai');
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); // O GEMINI_API_KEY según como esté, wait, el prompt es específico: OPENAI_API_KEY.
-// El prompt del usuario explícitamente dice: const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-// Asumamos que usa OpenAI para este módulo en particular, y lo seteará.
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const PROMPT_EXTRACTO = `Sos un asistente contable argentino experto en extractos bancarios.
 Analizá este extracto bancario y extraé TODAS las transacciones en orden cronológico.
@@ -45,25 +44,19 @@ Respondé ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdo
 async function extraerTransacciones(pdfBase64, nombreArchivo) {
   const inicio = Date.now();
 
-  const response = await client.chat.completions.create({
-    model: 'gpt-4o',
-    max_tokens: 4096,
-    messages: [{
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: `data:application/pdf;base64,${pdfBase64}`,
-            detail: 'high',
-          },
-        },
-        { type: 'text', text: PROMPT_EXTRACTO },
-      ],
-    }],
-  });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-  const texto = response.choices[0].message.content
+  const result = await model.generateContent([
+    {
+      inlineData: {
+        mimeType: 'application/pdf',
+        data: pdfBase64,
+      },
+    },
+    PROMPT_EXTRACTO,
+  ]);
+
+  const texto = result.response.text()
     .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
   let transacciones = JSON.parse(texto);
