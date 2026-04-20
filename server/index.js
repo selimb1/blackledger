@@ -12,31 +12,8 @@ if (!OPENAI_API_KEY) {
 
 const app = express();
 
-// CORS dinámico: acepta localhost en dev y cualquier URL de Vercel/Render en producción
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:4173',
-  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Permite requests sin origen (ej: curl, Postman) y los orígenes de la lista
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    // En producción también acepta cualquier subdominio de vercel.app y onrender.com
-    if (
-      origin.endsWith('.vercel.app') ||
-      origin.endsWith('.onrender.com')
-    ) {
-      return callback(null, true);
-    }
-    console.warn(`CORS bloqueó el origen: ${origin}`);
-    callback(new Error(`Origen no permitido por CORS: ${origin}`));
-  },
-  credentials: true,
-}));
+// CORS abierto: acepta cualquier origen (app de uso interno)
+app.use(cors());
 
 app.use(express.json({ limit: '50mb' }));
 
