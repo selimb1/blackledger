@@ -1,3 +1,116 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* Azul profesional — color primario de la marca */
+    --color-brand-900: #0f2d52;
+    --color-brand-700: #1a4a8a;
+    --color-brand-500: #2563eb;
+    --color-brand-100: #dbeafe;
+    --color-brand-50:  #eff6ff;
+
+    /* Esmeralda — color de éxito y acciones positivas */
+    --color-success-700: #065f46;
+    --color-success-500: #10b981;
+    --color-success-100: #d1fae5;
+    --color-success-50:  #ecfdf5;
+
+    /* Ámbar — advertencias y datos que requieren atención */
+    --color-warning-600: #d97706;
+    --color-warning-100: #fef3c7;
+
+    /* Rojo — errores, CUITs inválidos */
+    --color-danger-600: #dc2626;
+    --color-danger-100: #fee2e2;
+
+    /* Grises con temperatura azulada */
+    --color-gray-900: #0f172a;
+    --color-gray-700: #334155;
+    --color-gray-500: #64748b;
+    --color-gray-300: #cbd5e1;
+    --color-gray-100: #f1f5f9;
+    --color-gray-50:  #f8fafc;
+
+    /* Superficies */
+    --color-bg: #f1f5f9;
+    --color-surface: #ffffff;
+
+    /* Tipografía */
+    --font-display: 'Plus Jakarta Sans', sans-serif;
+    --font-ui: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Espaciado y forma */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.10), 0 2px 4px rgba(15, 23, 42, 0.06);
+    --transition: 150ms ease;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-gray-900);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom inputs that disable arrows */
+  input[type=number]::-webkit-inner-spin-button, 
+  input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+  }
+}
+
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+  .font-ui { font-family: var(--font-ui); }
+  .font-mono-custom { font-family: var(--font-mono); }
+
+  .checkbox-custom {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--color-gray-300);
+    border-radius: 4px;
+    background-color: var(--color-surface);
+    cursor: pointer;
+    position: relative;
+    transition: all var(--transition);
+    margin: 0;
+    vertical-align: middle;
+  }
+  
+  .checkbox-custom:checked {
+    background-color: var(--color-brand-500);
+    border-color: var(--color-brand-500);
+  }
+
+  .checkbox-custom:checked::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 4.5px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  .fade-in-up {
+    animation: fadeInUp 0.3s ease-out forwards;
+    opacity: 0;
+  }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

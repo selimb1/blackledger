@@ -27,69 +27,100 @@ export function ExportPanel({ comprobantes }) {
   if (habilitados.length === 0) return null;
 
   return (
-    <div className="bg-gray-900 rounded-xl p-5 text-white">
+    <div 
+      className="p-6 transition-all" 
+      style={{ 
+        backgroundColor: 'var(--color-surface)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-md)',
+        borderLeft: '4px solid var(--color-brand-500)'
+      }}
+    >
 
-      {/* Stats */}
-      <div className="flex items-center justify-between mb-4">
+      {/* Título y Acciones */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-sm font-medium">Listo para exportar</p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {habilitados.length} comprobante{habilitados.length !== 1 ? 's' : ''} — Total: {formatARS(totalMonto)}
+          <h2 className="text-[18px] font-display font-bold mb-1" style={{ color: 'var(--color-gray-900)' }}>
+            Exportar a Holistor
+          </h2>
+          <p className="text-[14px] font-mono-custom font-medium" style={{ color: 'var(--color-gray-700)' }}>
+            {habilitados.length} comprobantes · {formatARS(totalMonto)}
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowPreview(!showPreview)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-300 border border-gray-600 rounded-lg hover:border-gray-400 transition-colors"
-          >
-            {showPreview ? <EyeOff size={13} /> : <Eye size={13} />}
-            {showPreview ? 'Ocultar' : 'Preview'}
-          </button>
-          <button
-            onClick={handleCopiar}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-300 border border-gray-600 rounded-lg hover:border-gray-400 transition-colors"
-          >
-            {copiado ? <CheckCheck size={13} className="text-green-400" /> : <Copy size={13} />}
-            {copiado ? 'Copiado' : 'Copiar'}
-          </button>
+        
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowPreview(!showPreview)}
+              className="text-[13px] font-medium transition-colors hover:!text-[var(--color-brand-500)]"
+              style={{ color: 'var(--color-gray-600)' }}
+            >
+              {showPreview ? 'Ocultar preview' : 'Preview'}
+            </button>
+            
+            <span style={{ color: 'var(--color-gray-300)' }}>|</span>
+            
+            <button
+              onClick={handleCopiar}
+              className="text-[13px] font-medium transition-colors hover:!text-[var(--color-brand-500)]"
+              style={{ color: copiado ? 'var(--color-success-700)' : 'var(--color-gray-600)' }}
+            >
+              {copiado ? 'Copiado' : 'Copiar'}
+            </button>
+          </div>
+
           <button
             onClick={handleDescargar}
-            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-green-500 hover:bg-green-400 text-gray-900 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 text-[14px] font-semibold transition-colors hover:!bg-[var(--color-brand-700)]"
+            style={{ 
+              backgroundColor: 'var(--color-brand-500)', 
+              color: '#ffffff',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: 'var(--shadow-sm)'
+            }}
           >
-            <Download size={13} />
+            <Download size={16} />
             Descargar .txt
           </button>
         </div>
       </div>
 
-      {/* Preview del TXT */}
+      {/* Preview del TXT simulando Terminal */}
       {showPreview && (
-        <div className="mt-3 bg-gray-800 rounded-lg p-3 overflow-x-auto">
-          <p className="text-xs text-gray-500 mb-2 font-mono">
-            — preview (primeras {Math.min(habilitados.length, 5)} líneas) —
-          </p>
-          <pre className="text-xs text-green-400 font-mono whitespace-pre leading-relaxed">
-            {preview || '(sin comprobantes habilitados)'}
+        <div 
+          className="mb-8 p-[16px]"
+          style={{ 
+            backgroundColor: 'var(--color-gray-900)',
+            borderRadius: 'var(--radius-md)'
+          }}
+        >
+          <pre className="text-[12px] font-mono-custom whitespace-pre" style={{ color: 'var(--color-success-500)', lineHeight: '1.6' }}>
+            {preview || '(Sin comprobantes habilitados)'}
           </pre>
-          {habilitados.length > 5 && (
-            <p className="text-xs text-gray-500 mt-2 font-mono">
-              ... y {habilitados.length - 5} líneas más
-            </p>
-          )}
         </div>
       )}
 
       {/* Instrucciones de importación */}
-      <div className="mt-4 pt-4 border-t border-gray-700">
-        <p className="text-xs text-gray-400 font-medium mb-2">Cómo importar en Holistor:</p>
-        <ol className="text-xs text-gray-500 space-y-0.5 list-decimal list-inside">
-          <li>Módulo IVA Registración → Útiles → Importar → Datos de Otros Sistemas</li>
-          <li>Seleccioná <strong className="text-gray-400">Compras</strong> o <strong className="text-gray-400">Ventas</strong> según corresponda</li>
-          <li>Elegí el archivo .txt descargado</li>
-          <li>En "Diseño de Registro" usá el separador <strong className="text-gray-400">pipe (|)</strong> con 16 columnas</li>
-          <li>Mapeá cada columna al campo correspondiente de Holistor</li>
-        </ol>
+      <div className="pt-5 mt-2 border-t" style={{ borderColor: 'var(--color-gray-300)' }}>
+        <p className="text-[13px] font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--color-gray-900)' }}>
+          Instrucciones de importación
+        </p>
+        <ul className="text-[13px] space-y-2 flex flex-col" style={{ color: 'var(--color-gray-700)' }}>
+          <li className="flex gap-2.5 items-start">
+            <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold mt-0.5" style={{ backgroundColor: 'var(--color-brand-100)', color: 'var(--color-brand-700)' }}>1</span>
+            <span>Módulo IVA Registración → Útiles → Importar → Datos de Otros Sistemas.</span>
+          </li>
+          <li className="flex gap-2.5 items-start">
+            <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold mt-0.5" style={{ backgroundColor: 'var(--color-brand-100)', color: 'var(--color-brand-700)' }}>2</span>
+            <span>Seleccioná <strong style={{ color: 'var(--color-gray-900)' }}>Compras</strong> o <strong style={{ color: 'var(--color-gray-900)' }}>Ventas</strong> según el tipo de comprobantes.</span>
+          </li>
+          <li className="flex gap-2.5 items-start">
+            <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold mt-0.5" style={{ backgroundColor: 'var(--color-brand-100)', color: 'var(--color-brand-700)' }}>3</span>
+            <span>Elegí el archivo descargado y usá <strong style={{ color: 'var(--color-gray-900)' }}>pipe (|)</strong> de long. variable con 16 columnas en Diseño de Registro.</span>
+          </li>
+        </ul>
       </div>
+
     </div>
   );
 }

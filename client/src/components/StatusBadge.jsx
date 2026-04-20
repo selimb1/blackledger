@@ -1,20 +1,27 @@
 export function StatusBadge({ estado, errores = [] }) {
+  const mostrarAdvertencia = estado === 'EXTRAIDO' && errores.length > 0;
+
   const configs = {
-    PENDIENTE:  { bg: 'bg-gray-100', text: 'text-gray-500', label: 'Pendiente' },
-    PROCESANDO: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Procesando...' },
-    EXTRAIDO:   { bg: 'bg-green-100', text: 'text-green-700', label: errores.length > 0 ? 'Revisar' : 'OK' },
-    ERROR:      { bg: 'bg-red-100', text: 'text-red-700', label: 'Error' },
+    PENDIENTE:  { color: 'var(--color-gray-500)', label: 'Pendiente', dotClass: '' },
+    PROCESANDO: { color: 'var(--color-brand-500)', label: 'Procesando', dotClass: 'animate-pulse' },
+    EXTRAIDO:   { 
+      color: mostrarAdvertencia ? 'var(--color-warning-600)' : 'var(--color-success-700)', 
+      label: mostrarAdvertencia ? `${errores.length} advert.` : 'OK',
+      dotClass: '' 
+    },
+    ERROR:      { color: 'var(--color-danger-600)', label: 'Error', dotClass: '' },
   };
 
   const cfg = configs[estado] || configs.PENDIENTE;
-  const mostrarAdvertencia = estado === 'EXTRAIDO' && errores.length > 0;
 
   return (
     <span
-      className={`text-xs font-medium px-2 py-0.5 rounded-full ${mostrarAdvertencia ? 'bg-yellow-100 text-yellow-700' : `${cfg.bg} ${cfg.text}`}`}
+      className="inline-flex items-center gap-1.5 text-[11px] font-medium mt-1 transition-colors"
+      style={{ color: cfg.color }}
       title={errores.join(' | ')}
     >
-      {mostrarAdvertencia ? `⚠ ${errores.length} advertencia${errores.length > 1 ? 's' : ''}` : cfg.label}
+      <span className={cfg.dotClass} style={{ fontSize: '8px' }}>{estado === 'ERROR' ? '✕' : '●'}</span>
+      {cfg.label}
     </span>
   );
 }

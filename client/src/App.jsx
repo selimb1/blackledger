@@ -4,7 +4,6 @@ import { DropZoneMultiple } from './components/DropZoneMultiple';
 import { ComprobanteTable } from './components/ComprobanteTable';
 import { ExportPanel } from './components/ExportPanel';
 import { extraerComprobantes } from './services/api';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function App() {
   const [items, setItems] = useState([]);
@@ -66,67 +65,93 @@ export default function App() {
   const cantErrores = items.filter(i => i.estado === 'ERROR').length;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
+      {/* Indicador de proceso top absoluto, animacion shimmer */}
+      {procesando && (
+        <div className="absolute top-0 left-0 right-0 h-[3px] z-50 overflow-hidden" style={{ backgroundColor: 'var(--color-brand-100)' }}>
+          <div className="h-full animate-[shimmer_1.5s_infinite_linear]" style={{ backgroundColor: 'var(--color-brand-500)', width: '40%' }} />
+        </div>
+      )}
+      
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(300%); }
+        }
+      `}} />
+
       <Header />
 
-      <main className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-5">
+      <main className="flex-1 p-[24px] max-w-[1100px] w-full mx-auto space-y-6">
 
         {/* Drop zone */}
         <DropZoneMultiple onArchivos={handleArchivos} procesando={procesando} />
 
-        {/* Indicador de progreso */}
-        {procesando && (
-          <div className="bg-white border border-gray-200 rounded-xl px-5 py-3 flex items-center gap-3">
-            <Loader2 size={16} className="text-blue-500 animate-spin" />
-            <span className="text-sm text-gray-600">
-              Gemini está procesando los comprobantes...
-            </span>
-          </div>
-        )}
-
         {/* Error general */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3 flex items-center gap-3">
-            <AlertCircle size={16} className="text-red-500 shrink-0" />
-            <span className="text-sm text-red-700">{error}</span>
+          <div 
+            className="text-sm px-4 py-3" 
+            style={{ 
+              backgroundColor: 'var(--color-danger-100)', 
+              color: 'var(--color-danger-600)',
+              borderLeft: '4px solid var(--color-danger-600)'
+            }}
+          >
+            <strong>Error:</strong> {error}
           </div>
         )}
 
-        {/* Stats + acciones sobre los resultados */}
-        {items.length > 0 && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-gray-600">
-                <strong className="text-gray-900">{items.length}</strong> comprobantes
-              </span>
-              {cantExtraidos > 0 && (
-                <span className="text-green-600 font-medium">{cantExtraidos} OK</span>
-              )}
-              {cantErrores > 0 && (
-                <span className="text-red-600 font-medium">{cantErrores} con error</span>
-              )}
-            </div>
-            <button
-              onClick={handleLimpiarTodo}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition-colors"
+        <div className="space-y-6">
+          {/* Stats + acciones sobre los resultados (card style) */}
+          {items.length > 0 && (
+            <div 
+              className="flex items-center justify-between px-5 py-3" 
+              style={{ 
+                backgroundColor: 'var(--color-surface)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-sm)'
+              }}
             >
-              <RefreshCw size={12} />
-              Limpiar todo
-            </button>
-          </div>
-        )}
+              <div className="flex items-center gap-4 text-[14px]">
+                <span style={{ color: 'var(--color-gray-900)' }} className="font-semibold">
+                  {items.length} comprobantes procesados
+                </span>
+                
+                {cantExtraidos > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[12px] font-medium" style={{ backgroundColor: 'var(--color-success-100)', color: 'var(--color-success-700)' }}>
+                    {cantExtraidos} OK
+                  </span>
+                )}
+                
+                {cantErrores > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[12px] font-medium" style={{ backgroundColor: 'var(--color-warning-100)', color: 'var(--color-warning-600)' }}>
+                    {cantErrores} con atención
+                  </span>
+                )}
+              </div>
+              
+              <button
+                onClick={handleLimpiarTodo}
+                className="text-[13px] font-medium transition-colors hover:underline"
+                style={{ color: 'var(--color-danger-600)' }}
+              >
+                Limpiar todo
+              </button>
+            </div>
+          )}
 
-        {/* Tabla de comprobantes */}
-        {items.length > 0 && (
-          <ComprobanteTable
-            items={items}
-            onChange={handleChange}
-            onEliminar={handleEliminar}
-          />
-        )}
+          {/* Tabla de comprobantes */}
+          {items.length > 0 && (
+            <ComprobanteTable
+              items={items}
+              onChange={handleChange}
+              onEliminar={handleEliminar}
+            />
+          )}
 
-        {/* Panel de exportación */}
-        <ExportPanel comprobantes={items} />
+          {/* Panel de exportación */}
+          <ExportPanel comprobantes={items} />
+        </div>
 
       </main>
     </div>
