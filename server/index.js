@@ -9,12 +9,12 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 if (!OPENAI_API_KEY) {
   console.warn('\n⚠️ ADVERTENCIA: OPENAI_API_KEY no configurada. El módulo Comprobantes → Holistor fallará.\n');
 }
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) {
-  console.warn('\n⚠️ ADVERTENCIA: GEMINI_API_KEY no configurada. El módulo Conciliación Bancaria fallará.\n');
-}
+
 
 const app = express();
+
+// Necesario para que express-rate-limit funcione correctamente detrás del proxy de Render
+app.set('trust proxy', 1);
 
 // CORS abierto: acepta cualquier origen (app de uso interno)
 app.use(cors());
@@ -31,7 +31,6 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     openai: !!OPENAI_API_KEY,
-    gemini: !!GEMINI_API_KEY,
   });
 });
 
