@@ -1,9 +1,10 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const OpenAI = require('openai');
+const pdfParse = require('pdf-parse');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const PROMPT_EXTRACTO = `Sos un asistente contable argentino experto en extractos bancarios.
-Analizá este extracto bancario y extraé TODAS las transacciones en orden cronológico.
+Analizá el siguiente texto de un extracto bancario y extraé TODAS las transacciones en orden cronológico.
 
 REGLAS CRÍTICAS:
 - Extraé CADA movimiento individual sin omitir ninguno
@@ -44,19 +45,31 @@ Respondé ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdo
 async function extraerTransacciones(pdfBase64, nombreArchivo) {
   const inicio = Date.now();
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  // 1. Convertir base64 a Buffer y extraer texto del PDF
+  const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+  const { text: textoPdf } = await pdfParse(pdfBuffer);
 
-  const result = await model.generateContent([
-    {
-      inlineData: {
-        mimeType: 'application/pdf',
-        data: pdfBase64,
+  if (!textoPdf || textoPdf.trim().length < 50) {
+    throw new SyntaxError('El PDF no contiene texto extraíble. Verificá que sea un PDF bancario válido y no una imagen escaneada.');
+  }
+
+  // 2. Enviar el texto extraído a GPT-4o
+  const response = await client.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: 4096,
+    messages: [
+      {
+        role: 'system',
+        content: 'Sos un asistente contable argentino experto en extractos bancarios. Respondés únicamente con JSON válido.',
       },
-    },
-    PROMPT_EXTRACTO,
-  ]);
+      {
+        role: 'user',
+        content: `${PROMPT_EXTRACTO}\n\n--- EXTRACTO BANCARIO ---\n${textoPdf}\n--- FIN DEL EXTRACTO ---`,
+      },
+    ],
+  });
 
-  const texto = result.response.text()
+  const texto = response.choices[0].message.content
     .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
   let transacciones = JSON.parse(texto);
@@ -64,7 +77,7 @@ async function extraerTransacciones(pdfBase64, nombreArchivo) {
   transacciones = transacciones.map(t => ({
     ...t,
     importe: parseFloat(t.importe) || 0,
-    saldo: t.saldo !== null ? parseFloat(t.saldo) : null,
+    saldo: t.saldo !== null && t.saldo !== undefined ? parseFloat(t.saldo) : null,
     fuente: nombreArchivo,
   }));
 
