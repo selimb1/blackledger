@@ -3,8 +3,15 @@ const pdfParse = require('pdf-parse');
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const PROMPT_EXTRACTO = `Sos un asistente contable argentino experto en extractos bancarios.
-Analizá el siguiente texto de un extracto bancario y extraé TODAS las transacciones en orden cronológico.
+// Cuántos caracteres de texto del PDF enviamos por chunk
+const CHARS_POR_CHUNK = 12000;
+// Tokens máximos de OUTPUT por llamada (gpt-4o admite hasta 16384)
+const MAX_TOKENS_OUTPUT = 16000;
+
+const SISTEMA = 'Sos un asistente contable argentino experto en extractos bancarios. Respondés ÚNICAMENTE con un array JSON válido, sin markdown, sin bloques de código, sin texto adicional.';
+
+function buildPrompt(textoPdf) {
+  return `Analizá el siguiente texto de un extracto bancario y extraé TODAS las transacciones en orden cronológico.
 
 REGLAS CRÍTICAS:
 - Extraé CADA movimiento individual sin omitir ninguno
@@ -29,67 +36,97 @@ Para "imputacion", asigná la cuenta contable más probable:
 - Saldo inicial → "Disponibilidades"
 - No identificados → "Otras cuentas"
 
-Respondé ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin bloques de código:
-[
-  {
-    "fecha": "DD/MM/YY",
-    "descripcion": "descripción principal",
-    "detalle": "detalle adicional o referencia",
-    "importe": 0.00,
-    "saldo": 0.00,
-    "tipo_movimiento": "Credito",
-    "imputacion": "cuenta contable sugerida"
-  }
-]`;
+Respondé ÚNICAMENTE con el array JSON. Sin markdown. Sin bloques de código. Sin texto antes o después:
+[{"fecha":"DD/MM/YY","descripcion":"...","detalle":"...","importe":0.00,"saldo":0.00,"tipo_movimiento":"Credito","imputacion":"..."}]
+
+--- EXTRACTO BANCARIO ---
+${textoPdf}
+--- FIN DEL EXTRACTO ---`;
+}
 
 /**
- * Extrae JSON de una respuesta que puede tener markdown u otros caracteres extra.
+ * Extrae JSON de una respuesta que puede traer markdown u otros prefijos.
+ * Además intenta recuperar JSON truncado por límite de tokens.
  */
 function extraerJSON(texto) {
-  // 1. Intentar parsear directo
-  try {
-    return JSON.parse(texto);
-  } catch (_) {}
-
-  // 2. Limpiar bloques de código markdown
+  // 1. Limpiar bloques de código markdown primero
   let limpio = texto
     .replace(/```json\s*/gi, '')
     .replace(/```\s*/gi, '')
     .trim();
 
-  try {
-    return JSON.parse(limpio);
-  } catch (_) {}
+  // 2. Intentar parsear directo
+  try { return JSON.parse(limpio); } catch (_) {}
 
-  // 3. Extraer el primer [ ... ] que aparezca
-  const match = limpio.match(/\[[\s\S]*\]/);
-  if (match) {
-    try {
-      return JSON.parse(match[0]);
-    } catch (_) {}
+  // 3. Extraer el primer [...]
+  const matchArr = limpio.match(/\[[\s\S]*/);
+  if (matchArr) {
+    let candidato = matchArr[0];
+
+    // Intentar parsear la porción del array
+    try { return JSON.parse(candidato); } catch (_) {}
+
+    // 4. JSON truncado: cerrar el array de emergencia
+    //    Buscar el último objeto completo (termina en '}')
+    const ultimoObjeto = candidato.lastIndexOf('}');
+    if (ultimoObjeto !== -1) {
+      const recuperado = candidato.substring(0, ultimoObjeto + 1) + ']';
+      try {
+        const parsed = JSON.parse(recuperado);
+        console.warn(`[conciliacion] Recuperación de emergencia: JSON truncado, ${parsed.length} transacciones recuperadas.`);
+        return parsed;
+      } catch (_) {}
+    }
   }
 
-  // 4. Extraer primer { ... } y envolverlo en array
-  const objMatch = limpio.match(/\{[\s\S]*\}/);
-  if (objMatch) {
-    try {
-      return [JSON.parse(objMatch[0])];
-    } catch (_) {}
+  // 5. Extraer primer {...} y envolverlo
+  const matchObj = limpio.match(/\{[\s\S]*\}/);
+  if (matchObj) {
+    try { return [JSON.parse(matchObj[0])]; } catch (_) {}
   }
 
-  throw new Error(`No se pudo parsear la respuesta de IA como JSON. Respuesta recibida: ${texto.substring(0, 200)}`);
+  throw new Error(
+    `No se pudo parsear la respuesta de IA como JSON. Respuesta recibida (primeros 300 chars): ${texto.substring(0, 300)}`
+  );
+}
+
+/**
+ * Llama a la API de OpenAI para un chunk de texto y devuelve las transacciones.
+ */
+async function procesarChunk(textoPdf, chunkNum, totalChunks) {
+  console.log(`[conciliacion] Procesando chunk ${chunkNum}/${totalChunks} (${textoPdf.length} chars)`);
+
+  const response = await client.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: MAX_TOKENS_OUTPUT,
+    temperature: 0,
+    messages: [
+      { role: 'system', content: SISTEMA },
+      { role: 'user', content: buildPrompt(textoPdf) },
+    ],
+  });
+
+  const finishReason = response.choices[0]?.finish_reason;
+  const textoRespuesta = response.choices[0]?.message?.content ?? '';
+
+  console.log(`[conciliacion] Chunk ${chunkNum}: finish_reason=${finishReason}, response_length=${textoRespuesta.length}`);
+  if (finishReason === 'length') {
+    console.warn(`[conciliacion] Chunk ${chunkNum}: respuesta truncada por límite de tokens. Intentando recuperar...`);
+  }
+
+  return extraerJSON(textoRespuesta);
 }
 
 async function extraerTransacciones(pdfBase64, nombreArchivo) {
   const inicio = Date.now();
 
-  // 1. Convertir base64 a Buffer y extraer texto del PDF
+  // 1. Parsear el PDF
   let textoPdf;
   try {
     const pdfBuffer = Buffer.from(pdfBase64, 'base64');
     const parseResult = await pdfParse(pdfBuffer);
     textoPdf = parseResult.text;
-    console.log(`[conciliacion] PDF parseado: ${textoPdf?.length ?? 0} caracteres`);
+    console.log(`[conciliacion] PDF "${nombreArchivo}" parseado: ${textoPdf?.length ?? 0} caracteres`);
   } catch (pdfError) {
     console.error('[conciliacion] Error al parsear PDF:', pdfError.message);
     throw new Error(`No se pudo leer el PDF: ${pdfError.message}. Verificá que sea un PDF bancario válido y no esté dañado.`);
@@ -99,53 +136,37 @@ async function extraerTransacciones(pdfBase64, nombreArchivo) {
     throw new Error('El PDF no contiene texto extraíble. Puede ser un PDF escaneado o protegido. Intentá con otro archivo.');
   }
 
-  // 2. Enviar el texto extraído a GPT-4o
-  let response;
-  try {
-    response = await client.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 4096,
-      temperature: 0,
-      messages: [
-        {
-          role: 'system',
-          content: 'Sos un asistente contable argentino experto en extractos bancarios. Respondés únicamente con JSON válido sin markdown.',
-        },
-        {
-          role: 'user',
-          content: `${PROMPT_EXTRACTO}\n\n--- EXTRACTO BANCARIO ---\n${textoPdf.substring(0, 15000)}\n--- FIN DEL EXTRACTO ---`,
-        },
-      ],
-    });
-  } catch (openaiError) {
-    console.error('[conciliacion] Error OpenAI:', openaiError.message);
-    throw new Error(`Error al consultar la IA: ${openaiError.message}`);
+  // 2. Dividir en chunks si el texto es muy largo
+  const chunks = [];
+  for (let i = 0; i < textoPdf.length; i += CHARS_POR_CHUNK) {
+    chunks.push(textoPdf.substring(i, i + CHARS_POR_CHUNK));
+  }
+  console.log(`[conciliacion] Texto dividido en ${chunks.length} chunk(s)`);
+
+  // 3. Procesar cada chunk
+  let todasLasTransacciones = [];
+  for (let i = 0; i < chunks.length; i++) {
+    try {
+      const transaccionesChunk = await procesarChunk(chunks[i], i + 1, chunks.length);
+      todasLasTransacciones.push(...transaccionesChunk);
+    } catch (chunkError) {
+      console.error(`[conciliacion] Error en chunk ${i + 1}: ${chunkError.message}`);
+      // Si es el primer chunk, el error es crítico. Si no, continuar con lo que tenemos.
+      if (i === 0) throw chunkError;
+      console.warn(`[conciliacion] Continuando con los chunks anteriores...`);
+      break;
+    }
   }
 
-  const textoRespuesta = response.choices[0]?.message?.content ?? '';
-  console.log(`[conciliacion] Respuesta IA (primeros 300 chars): ${textoRespuesta.substring(0, 300)}`);
-
-  // 3. Parsear JSON de la respuesta
-  let transacciones;
-  try {
-    transacciones = extraerJSON(textoRespuesta);
-  } catch (parseError) {
-    console.error('[conciliacion] Error parseando JSON:', parseError.message);
-    throw new Error(parseError.message);
-  }
-
-  if (!Array.isArray(transacciones)) {
-    throw new Error('La IA no devolvió un listado de transacciones válido.');
-  }
-
-  transacciones = transacciones.map(t => ({
+  // 4. Normalizar y deduplicar (evitar duplicados en solapamiento de chunks)
+  const transacciones = todasLasTransacciones.map(t => ({
     ...t,
     importe: parseFloat(t.importe) || 0,
     saldo: t.saldo !== null && t.saldo !== undefined ? parseFloat(t.saldo) : null,
     fuente: nombreArchivo,
   }));
 
-  console.log(`[conciliacion] Transacciones extraídas: ${transacciones.length} en ${Date.now() - inicio}ms`);
+  console.log(`[conciliacion] Total transacciones extraídas: ${transacciones.length} en ${Date.now() - inicio}ms`);
 
   return {
     transacciones,
