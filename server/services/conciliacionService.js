@@ -29,7 +29,7 @@ Para "imputacion", asigná la cuenta contable más probable:
 - Saldo inicial → "Disponibilidades"
 - No identificados → "Otras cuentas"
 
-Respondé ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown:
+Respondé ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin bloques de código:
 [
   {
     "fecha": "DD/MM/YY",
@@ -42,37 +42,101 @@ Respondé ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdo
   }
 ]`;
 
+/**
+ * Extrae JSON de una respuesta que puede tener markdown u otros caracteres extra.
+ */
+function extraerJSON(texto) {
+  // 1. Intentar parsear directo
+  try {
+    return JSON.parse(texto);
+  } catch (_) {}
+
+  // 2. Limpiar bloques de código markdown
+  let limpio = texto
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/gi, '')
+    .trim();
+
+  try {
+    return JSON.parse(limpio);
+  } catch (_) {}
+
+  // 3. Extraer el primer [ ... ] que aparezca
+  const match = limpio.match(/\[[\s\S]*\]/);
+  if (match) {
+    try {
+      return JSON.parse(match[0]);
+    } catch (_) {}
+  }
+
+  // 4. Extraer primer { ... } y envolverlo en array
+  const objMatch = limpio.match(/\{[\s\S]*\}/);
+  if (objMatch) {
+    try {
+      return [JSON.parse(objMatch[0])];
+    } catch (_) {}
+  }
+
+  throw new Error(`No se pudo parsear la respuesta de IA como JSON. Respuesta recibida: ${texto.substring(0, 200)}`);
+}
+
 async function extraerTransacciones(pdfBase64, nombreArchivo) {
   const inicio = Date.now();
 
   // 1. Convertir base64 a Buffer y extraer texto del PDF
-  const pdfBuffer = Buffer.from(pdfBase64, 'base64');
-  const { text: textoPdf } = await pdfParse(pdfBuffer);
+  let textoPdf;
+  try {
+    const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+    const parseResult = await pdfParse(pdfBuffer);
+    textoPdf = parseResult.text;
+    console.log(`[conciliacion] PDF parseado: ${textoPdf?.length ?? 0} caracteres`);
+  } catch (pdfError) {
+    console.error('[conciliacion] Error al parsear PDF:', pdfError.message);
+    throw new Error(`No se pudo leer el PDF: ${pdfError.message}. Verificá que sea un PDF bancario válido y no esté dañado.`);
+  }
 
   if (!textoPdf || textoPdf.trim().length < 50) {
-    throw new SyntaxError('El PDF no contiene texto extraíble. Verificá que sea un PDF bancario válido y no una imagen escaneada.');
+    throw new Error('El PDF no contiene texto extraíble. Puede ser un PDF escaneado o protegido. Intentá con otro archivo.');
   }
 
   // 2. Enviar el texto extraído a GPT-4o
-  const response = await client.chat.completions.create({
-    model: 'gpt-4o',
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'system',
-        content: 'Sos un asistente contable argentino experto en extractos bancarios. Respondés únicamente con JSON válido.',
-      },
-      {
-        role: 'user',
-        content: `${PROMPT_EXTRACTO}\n\n--- EXTRACTO BANCARIO ---\n${textoPdf}\n--- FIN DEL EXTRACTO ---`,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await client.chat.completions.create({
+      model: 'gpt-4o',
+      max_tokens: 4096,
+      temperature: 0,
+      messages: [
+        {
+          role: 'system',
+          content: 'Sos un asistente contable argentino experto en extractos bancarios. Respondés únicamente con JSON válido sin markdown.',
+        },
+        {
+          role: 'user',
+          content: `${PROMPT_EXTRACTO}\n\n--- EXTRACTO BANCARIO ---\n${textoPdf.substring(0, 15000)}\n--- FIN DEL EXTRACTO ---`,
+        },
+      ],
+    });
+  } catch (openaiError) {
+    console.error('[conciliacion] Error OpenAI:', openaiError.message);
+    throw new Error(`Error al consultar la IA: ${openaiError.message}`);
+  }
 
-  const texto = response.choices[0].message.content
-    .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  const textoRespuesta = response.choices[0]?.message?.content ?? '';
+  console.log(`[conciliacion] Respuesta IA (primeros 300 chars): ${textoRespuesta.substring(0, 300)}`);
 
-  let transacciones = JSON.parse(texto);
+  // 3. Parsear JSON de la respuesta
+  let transacciones;
+  try {
+    transacciones = extraerJSON(textoRespuesta);
+  } catch (parseError) {
+    console.error('[conciliacion] Error parseando JSON:', parseError.message);
+    throw new Error(parseError.message);
+  }
+
+  if (!Array.isArray(transacciones)) {
+    throw new Error('La IA no devolvió un listado de transacciones válido.');
+  }
 
   transacciones = transacciones.map(t => ({
     ...t,
@@ -80,6 +144,8 @@ async function extraerTransacciones(pdfBase64, nombreArchivo) {
     saldo: t.saldo !== null && t.saldo !== undefined ? parseFloat(t.saldo) : null,
     fuente: nombreArchivo,
   }));
+
+  console.log(`[conciliacion] Transacciones extraídas: ${transacciones.length} en ${Date.now() - inicio}ms`);
 
   return {
     transacciones,
