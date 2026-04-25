@@ -44,7 +44,23 @@ export function ExcelExportPanel({ transacciones, nombreArchivo, onLimpiar }) {
         </button>
         <button
           onClick={handleDescargar}
-          className="flex items-center gap-2 px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-medium shadow-[0_2px_4px_rgba(0,0,0,0.1)] transition-all"
+          style={{
+            background: '#16a34a',
+            color: '#ffffff',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: 'var(--radius-md, 8px)',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 1px 3px rgba(22, 163, 74, 0.3)',
+            transition: 'background 150ms ease',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#15803d'}
+          onMouseLeave={e => e.currentTarget.style.background = '#16a34a'}
         >
           <Download size={16} />
           Descargar Excel
