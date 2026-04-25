@@ -69,11 +69,13 @@ export function generarTxtHolistor(comprobantes) {
   return lineas.join('\r\n'); // CRLF para compatibilidad Windows/Holistor
 }
 
-// Genera el nombre del archivo sugerido
-export function nombreArchivo(periodo) {
+// Genera el nombre del archivo sugerido según tipo de libro
+export function nombreArchivo(tipoLibro = 'COMPRAS') {
   const hoy = new Date();
-  const fecha = hoy.toISOString().split('T')[0].replace(/-/g, '');
-  return `Comprix_Holistor_${periodo || fecha}.txt`;
+  const año = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  const tipo = tipoLibro === 'VENTAS' ? 'Ventas' : 'Compras';
+  return `Comprix_IVA${tipo}_${año}${mes}.txt`;
 }
 
 // Muestra un preview legible del archivo (primeras 5 líneas)

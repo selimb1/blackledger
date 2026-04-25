@@ -1,6 +1,6 @@
 import { ComprobanteRow } from './ComprobanteRow';
 
-export function ComprobanteTable({ items, onChange, onEliminar }) {
+export function ComprobanteTable({ items, onChange, onEliminar, tipoLibro }) {
   if (!items.length) return null;
 
   const headers = [
@@ -17,8 +17,12 @@ export function ComprobanteTable({ items, onChange, onEliminar }) {
     { label: '', align: 'text-center' }
   ];
 
+  const esVentas = tipoLibro === 'VENTAS';
+  const colorTexto = esVentas ? 'var(--color-success-700)' : 'var(--color-brand-500)';
+  const colorFondo = esVentas ? 'var(--color-success-50)' : 'var(--color-brand-50)';
+
   return (
-    <div 
+    <div
       className="overflow-x-auto"
       style={{
         backgroundColor: 'var(--color-surface)',
@@ -26,12 +30,34 @@ export function ComprobanteTable({ items, onChange, onEliminar }) {
         boxShadow: 'var(--shadow-md)',
       }}
     >
+      {/* Barra de contexto — tipo de libro */}
+      {tipoLibro && (
+        <div style={{
+          padding: '8px 16px',
+          background: colorFondo,
+          borderBottom: '1px solid var(--color-gray-200)',
+          fontSize: '12px',
+          fontWeight: '600',
+          color: colorTexto,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+        }}>
+          {esVentas ? '📤' : '📥'}
+          {esVentas ? 'Libro IVA Ventas' : 'Libro IVA Compras'}
+          <span style={{ fontWeight: '400', color: 'var(--color-gray-400)', marginLeft: '4px' }}>
+            — estos comprobantes se importarán en este libro de Holistor
+          </span>
+        </div>
+      )}
+
       <table className="w-full text-left border-collapse min-w-[900px]">
         <thead>
           <tr style={{ backgroundColor: 'var(--color-gray-50)' }}>
             {headers.map((h, i) => (
-              <th 
-                key={i} 
+              <th
+                key={i}
                 className={`px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.06em] border-b ${h.align}`}
                 style={{ color: 'var(--color-gray-500)', borderColor: 'var(--color-gray-300)' }}
               >

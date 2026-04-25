@@ -10,6 +10,7 @@ export function Comprobantes() {
   const [procesando, setProcesando] = useState(false);
   const [progreso, setProgreso] = useState({ actual: 0, total: 0 });
   const [error, setError] = useState('');
+  const [tipoLibro, setTipoLibro] = useState(null); // 'COMPRAS' | 'VENTAS' | null
 
   const handleArchivos = async (archivos) => {
     setError('');
@@ -58,6 +59,7 @@ export function Comprobantes() {
   const handleLimpiarTodo = () => {
     if (window.confirm('¿Eliminás todos los comprobantes de la sesión?')) {
       setItems([]);
+      setTipoLibro(null);
     }
   };
 
@@ -85,7 +87,12 @@ export function Comprobantes() {
       <main className="flex-1 p-[24px] max-w-[1100px] w-full mx-auto space-y-6">
 
         {/* Drop zone */}
-        <DropZoneMultiple onArchivos={handleArchivos} procesando={procesando} />
+        <DropZoneMultiple
+          onArchivos={handleArchivos}
+          procesando={procesando}
+          tipoLibro={tipoLibro}
+          onTipoLibro={setTipoLibro}
+        />
 
         {/* Error general */}
         {error && (
@@ -146,11 +153,12 @@ export function Comprobantes() {
               items={items}
               onChange={handleChange}
               onEliminar={handleEliminar}
+              tipoLibro={tipoLibro}
             />
           )}
 
           {/* Panel de exportación */}
-          <ExportPanel comprobantes={items} />
+          <ExportPanel comprobantes={items} tipoLibro={tipoLibro} />
         </div>
 
       </main>
